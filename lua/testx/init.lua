@@ -2,6 +2,10 @@ local mocha_parser = require("testx.mocha-parser")
 local M = {}
 local opts = {}
 
+local function is_debug_mode()
+	return opts.debug_mode
+end
+
 local function build_mocha_under_cursor_test_cmd(absolute_path, relative_path, test_case_name)
 	local template = opts.mocha.single_test_cmd
 	return template:gsub("${(%w+)}", { test = test_case_name, rel = relative_path })
@@ -17,6 +21,11 @@ M.run_test_under_cursor = function()
 	local row, _ = unpack(vim.api.nvim_win_get_cursor(0))
 	row = row - 1 -- Treesitter uses 0-based indexing
 	local test_case_name = mocha_parser.get_test_name_of_current_cursor(bufnr, row)
+
+	if is_debug_mode() then
+		print("Test case name: ", test_case_name)
+	end
+
 	local absolute_path = vim.api.nvim_buf_get_name(bufnr)
 	local relative_path = vim.fn.fnamemodify(absolute_path, ":~:.") -- Convert to relative path
 	local cmd = build_mocha_under_cursor_test_cmd(absolute_path, relative_path, test_case_name)

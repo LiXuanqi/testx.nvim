@@ -1,7 +1,6 @@
-var assert = require('assert');
 describe('operations', function() {
 	describe('#indexOf()', function() {
-		it('add', function() {
+		it('add', async function() {
 			assert.equal(1 + 1, 2);
 		});
 		it('minus', function() {

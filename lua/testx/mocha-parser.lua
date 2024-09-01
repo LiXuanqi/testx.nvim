@@ -7,11 +7,11 @@ local query = [[
 	       (string (string_fragment) @string))
   ) @it-block
 ]]
-local mocha_it_block_query = vim.treesitter.query.parse("javascript", query)
+local mocha_it_block_query = vim.treesitter.query.parse("tsx", query)
 
 local get_treesitter_root = function(bufnr)
 	-- TODO: handle tsx
-	local parser = vim.treesitter.get_parser(bufnr, "javascript")
+	local parser = vim.treesitter.get_parser(bufnr, "tsx")
 	local tree = parser:parse()[1]
 	return tree:root()
 end
