@@ -1,51 +1,42 @@
+local mocha_parser = require("testx.mocha-parser")
 local M = {}
-local query = [[
-	(call_expression
-  function: (identifier) @function (#eq? @function "it")
-  arguments: (arguments 
-	       (string (string_fragment) @string))
-  ) @it-block
-]]
-local mocha_it_block_query = vim.treesitter.query.parse("javascript", query)
+local opts = {}
 
-local get_treesitter_root = function(bufnr)
-	local parser = vim.treesitter.get_parser(bufnr, "javascript")
-	local tree = parser:parse()[1]
-	return tree:root()
+local function build_mocha_under_cursor_test_cmd(absolute_path, relative_path, test_case_name)
+	local template = opts.mocha.single_test_cmd
+	return template:gsub("${(%w+)}", { test = test_case_name, rel = relative_path })
 end
 
-local function get_mocha_test(bufnr, row)
-	local root = get_treesitter_root(bufnr)
-	for id, node, metadata, match in mocha_it_block_query:iter_captures(root, bufnr, 0, -1) do
-		local name = mocha_it_block_query.captures[id]
-		if name == "it-block" then
-			local start_row, start_col, end_row, end_col = node:range()
-			if row >= start_row and row <= end_row then
-				-- Get the text of the 'it' block
-				for child_id, child_node in mocha_it_block_query:iter_captures(node, bufnr, 0, -1) do
-					local child_name = mocha_it_block_query.captures[child_id]
-					if child_name == "string" then
-						local block_text = vim.treesitter.get_node_text(child_node, bufnr)
-						return block_text
-					end
-				end
-			end
-		end
-	end
-	return nil
+local function build_mocha_of_current_file_cmd(relative_path)
+	local template = opts.mocha.file_test_cmd
+	return template:gsub("${(%w+)}", { rel = relative_path })
 end
 
-M.run_test_in_current_cursor = function()
+M.run_test_under_cursor = function()
 	local bufnr = vim.api.nvim_get_current_buf()
-	local row, col = unpack(vim.api.nvim_win_get_cursor(0))
+	local row, _ = unpack(vim.api.nvim_win_get_cursor(0))
 	row = row - 1 -- Treesitter uses 0-based indexing
-	local test_name = get_mocha_test(bufnr, row)
+	local test_case_name = mocha_parser.get_test_name_of_current_cursor(bufnr, row)
+	local absolute_path = vim.api.nvim_buf_get_name(bufnr)
+	local relative_path = vim.fn.fnamemodify(absolute_path, ":~:.") -- Convert to relative path
+	local cmd = build_mocha_under_cursor_test_cmd(absolute_path, relative_path, test_case_name)
 
-	require("termx").run('mocha -g "' .. test_name .. '"')
+	require("termx").run(cmd)
 end
 
-M.setup = function()
-	vim.keymap.set("n", "<leader>rt", M.run_test_in_current_cursor, { desc = "[R]un [T]est under cursor" })
+M.run_test_of_current_file = function()
+	local bufnr = vim.api.nvim_get_current_buf()
+	local absolute_path = vim.api.nvim_buf_get_name(bufnr)
+	local relative_path = vim.fn.fnamemodify(absolute_path, ":~:.") -- Convert to relative path
+	local cmd = build_mocha_of_current_file_cmd(relative_path)
+
+	require("termx").run(cmd)
+end
+
+M.setup = function(_opts)
+	opts = _opts
+	vim.keymap.set("n", "<leader>rt", M.run_test_under_cursor, { desc = "[R]un [T]est under cursor" })
+	vim.keymap.set("n", "<leader>ra", M.run_test_of_current_file, { desc = "[R]un [A]ll test in current file" })
 end
 
 return M
