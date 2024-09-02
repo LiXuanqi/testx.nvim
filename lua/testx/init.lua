@@ -1,4 +1,5 @@
 local mocha_parser = require("testx.mocha-parser")
+local switcher = require("testx.switcher")
 local M = {}
 local opts = {}
 
@@ -46,6 +47,7 @@ M.setup = function(_opts)
 	opts = _opts
 	vim.keymap.set("n", "<leader>rt", M.run_test_under_cursor, { desc = "[R]un [T]est under cursor" })
 	vim.keymap.set("n", "<leader>ra", M.run_test_of_current_file, { desc = "[R]un [A]ll test in current file" })
+	vim.keymap.set("n", "<leader>gt", switcher.switch_file, { desc = "[G]o test file" })
 end
 
 return M
